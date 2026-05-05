@@ -2,6 +2,7 @@
 import sys
 import re
 import json
+import html
 import urllib.request
 import urllib.error
 import subprocess
@@ -17,6 +18,7 @@ query getProblem($titleSlug: String!) {
     title
     questionFrontendId
     difficulty
+    content
     topicTags { name slug }
   }
 }
@@ -72,6 +74,13 @@ DIFFICULTY_TAG_MAP = {
     "Medium": "leetcode/medium",
     "Hard":   "leetcode/hard",
 }
+
+
+def html_to_text(raw: str) -> str:
+    text = re.sub(r"<[^>]+>", "", raw or "")
+    text = html.unescape(text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def slug_from_url(url: str) -> str:
@@ -157,6 +166,7 @@ def build_note(
     language: str,
     solution_code: str,
     personal_note: str,
+    question_text: str = "",
 ) -> str:
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
@@ -166,6 +176,8 @@ def build_note(
     body = f"[[Leetcode]] #{problem_number}"
     if personal_note:
         body += f"\n- {personal_note}"
+    if question_text:
+        body += f"\n\n## Problem\n\n{question_text}"
     body += f"\n\n```{language}\n{solution_code}\n```"
 
     return (
@@ -204,6 +216,7 @@ def main():
     title = problem["title"]
     difficulty = problem["difficulty"]
     problem_number = problem["questionFrontendId"]
+    question_text = html_to_text(problem.get("content", ""))
     tags = build_tags(problem["topicTags"], difficulty)
 
     print(f"  Title:      {title}")
@@ -237,6 +250,7 @@ def main():
         language=language,
         solution_code=solution_code,
         personal_note=personal_note,
+        question_text=question_text,
     )
 
     LEARNINGS.mkdir(parents=True, exist_ok=True)
