@@ -5,6 +5,7 @@ import json
 import html
 import urllib.request
 import urllib.error
+import urllib.parse
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -197,9 +198,8 @@ def build_note(
 
 
 def clean_url(url: str) -> str:
-    # Normalise to the canonical description URL
     m = re.match(r"(https://leetcode\.com/problems/[^/?#]+)", url)
-    return m.group(1) + "/description/" if m else url
+    return m.group(1) + "/" if m else url
 
 
 def main():
@@ -207,7 +207,8 @@ def main():
         print("usage: leet.py <leetcode-problem-url>", file=sys.stderr)
         sys.exit(1)
 
-    url = sys.argv[1]
+    parsed = urllib.parse.urlparse(sys.argv[1])
+    url = urllib.parse.urlunparse(parsed._replace(query="", fragment=""))
     slug = slug_from_url(url)
 
     print("Fetching problem data...")
